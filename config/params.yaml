@@ -1,0 +1,167 @@
+sistema:  # Configurações gerais do sistema FinScope
+  versao: "2.1.0"  # Versão de referência das configurações
+  paths:  # Caminhos padrão dos principais arquivos de entrada e saída
+    historico: "data/BASE_HISTORICA.xlsx"  # Arquivo principal de histórico de consumo
+    tab_aux: "data/TAB_AUX.xlsx"  # Planilha auxiliar com IPCA e metadados
+    out_orcamento: "exportacoes/Orcamento/ml_orcamento"  # Diretório onde o orçamento final será salvo
+    ml_excel_nome: "ML_CONSUMO_SOLIDOS.xlsx"  # Nome do Excel gerado com séries mensais e indicadores
+
+filtros:  # Regras de limpeza e selecao aplicadas aos dados historicos
+  aplicar_filtro_conta_contabil: true  # Habilita filtro pelos codigos NUM_TIPO_DESPESA permitidos
+  conta_contabil_permitidas:  # Lista de codigos aceitos na coluna NUM_TIPO_DESPESA
+    - "0802"  # Materiais manutencao mecanica
+    - "0804"  # Materiais manutencao eletrica
+    - "0808"  # Materiais manutencao instrumentacao
+    - "0902"  # Materiais operacionais mecanica
+    - "0904"  # Materiais operacionais eletrica
+    - "0906"  # Materiais operacionais predial
+    - "0908"  # Materiais operacionais instrumentacao
+    - "1601"  # Conservacao de predios - materiais
+    - "1602"  # Conservacao de equipamentos - materiais
+    - "1708"  # Combustiveis e lubrificantes
+  aplicar_filtro_centro_custo: true  # Restringe os dados a um intervalo especifico de centros de custo
+  centro_custo_range: [6000, 6675]  # Faixa de centros de custo considerada relevante
+  centro_custo_excluir: [6215]  # Lista de centros de custo a remover do intervalo permitido
+  aplicar_filtro_ano_minimo: false  # Remove registros anteriores ao ano definido abaixo
+  ano_minimo_dados: 2019  # Ano minimo aceitavel no historico apos conversao de datas
+  remover_itens_palavra_parada: false  # Mantido por compatibilidade; filtragem padrao usa GRUPO_BUDGET
+  palavra_parada: "PARADA"  # Palavra-chave usada em cenarios legados
+  aplicar_filtro_grupo_budget: true  # Exclui grupos de budget indesejados (ex.: Parada Tecnica)
+  grupos_budget_excluir:
+    - "PARADA TECNICA"
+  aplicar_filtro_fonte: true  # Mantem apenas fontes especificas na consolidacao historica
+  fontes_permitidas:
+    - "MAN001_LIQUIDACAO"
+    - "MAN004"
+  fabricas:  # Presets de faixas de centro de custo por fábrica
+    fertilizantes:
+      label: "Fabrica de Fertilizantes Solidos"
+      cc_start: 6000
+      cc_end: 6675
+      cc_excluir: [6215]
+    etar:
+      label: "Estacao de Tratamento de Agua (ETAR)"
+      cc_start: 6215
+      cc_end: 6215
+      cc_excluir: []
+    nutricao:
+      label: "Fabrica de Nutricao Animal"
+      cc_start: 7160
+      cc_end: 7160
+      cc_excluir: []
+
+ml:  # Parâmetros do pipeline de Machine Learning
+  horizon_meses_default: 12  # Horizonte padrão de previsão em meses
+  meses_minimos_historico: 6  # Quantidade mínima de meses com dados para processar um item ideal 6 para ETAR 3
+  quality_score_minimo: 60.0  # Nota mínima de qualidade para considerar o modelo confiável
+  thresholds:  # Limiares usados na classificação ADI/CV²
+    adi: 1.32  # Limite do Average Demand Interval para indicar intermitência
+    cv2: 0.49  # Limite do coeficiente de variação ao quadrado
+  modelos_habilitados:  # Flags que ativam cada família de modelos
+    ses: true  # Habilita Simple Exponential Smoothing
+    croston_safe: true  # Habilita Croston seguro para demandas intermitentes
+    croston_modificado: true  # Permite Croston com ajuste de tendência
+    arima: true  # Disponibiliza o modelo ARIMA automático
+  croston_modificado:  # Ajustes específicos do Croston Modificado
+    habilitado: true  # Define se a variante modificada pode ser usada
+    alpha_default: 0.1  # Fator de suavização da demanda (Croston)
+    beta_default: 0.1  # Fator de suavização do intervalo (Croston)
+    trend_limit_short: 0.05  # Limite máximo de tendência para séries curtas
+    trend_limit_long: 0.10  # Limite máximo de tendência para séries longas
+    min_periods_for_trend: 24  # Número mínimo de períodos para estimar tendência
+  seletor_inteligente:  # Configura o seletor de modelos baseado em ML
+    habilitado: true  # Define se o seletor RandomForest será usado
+    features: [ADI, CV2, TREND_STRENGTH, SEASONALITY_SIMPLE, OCCURRENCES_TOTAL]  # Variáveis utilizadas pelo seletor
+  validacao:  # Parâmetros de validação das previsões
+    gap_max_permitido: 6  # Número máximo de meses consecutivos sem consumo antes de aplicar penalidade ideal 6 para ETAR 12
+    gap_penalidade: 0.5  # Fator multiplicativo aplicado ao forecast quando há grandes lacunas
+    meses_inativo: 24  # Quantidade de meses sem consumo para marcar um item como inativo 
+    revisao_ratio: 5.0  # Razão forecast/histórico que dispara alerta de revisão manual
+    limite_adi_croston: 1.32  # Limite de ADI para obrigar uso do Croston Safe
+  quality_score:
+    habilitado: true  # Permite calcular e utilizar QUALITY_SCORE nos relatórios
+
+orcamento:  # Parâmetros usados na geração do orçamento 2026
+  ano_orcamento: 2026  # Ano alvo das projeções
+  margem_seguranca_padrao: 0.00  # Margem genérica aplicada quando não há regra específica
+  ajuste_inflacao_anual: 0.035  # Percentual de reajuste aplicado sobre preços base
+  modo_padrao: "inteligente"  # Modo de projeção utilizado por padrão (essencial, fidelidade ou inteligente)
+  mensal:
+    blend_forecast_hist: 0.1  # Peso do forecast na distribuição mensal (0.0=histórico, 1.0=forecast)
+  abc_percentuais:  # Percentuais cumulativos para classificação ABC
+    A: 0.80  # Até 80% do valor agregado é classe A
+    B: 0.95  # Até 95% do valor agregado é classe B
+  margens_por_quality:  # Margens dinâmicas conforme a qualidade do modelo
+    - min_quality: 80  # Para qualidade ≥ 80 aplica a margem abaixo
+      margem: 0.10  # Margem de segurança de 10%
+    - min_quality: 60  # Para qualidade ≥ 60 (e <80) aplica a margem abaixo
+      margem: 0.15  # Margem de segurança de 15%
+    - min_quality: 0  # Para qualquer qualidade restante aplica a margem abaixo
+      margem: 0.25  # Margem de segurança de 25%
+  margem_maxima: 0.50  # Limite superior para qualquer margem aplicada
+  uso_industrial:
+    lumpy:
+      min_occ_total_para_raro: 6       # Número mínimo de ocorrências totais para classificar como RARO, PADRÃO = 6 
+      min_occ_12m_para_raro: 3          # Número mínimo de ocorrências nos últimos 12 meses para classificar como RARO, PADRÃO = 3
+      max_meses_sem_uso_para_raro: 12   # Máximo de meses sem consumo para ainda considerar como RARO, PADRÃO = 12
+  analise_critica:
+    descricoes_palavras:  # Itens que devem ser destacados na aba ANALISE_CRITICA
+      - "CORREIA TRANSPORTADORA"
+      - "CORPO ESPIRAL"
+      - "TELA P/PENEIRA"
+      - "ROLETE DE CARGA"
+      - "PEMIL"
+    ignorar_model_inactive: true  # Itens críticos ignoram regra de inatividade
+  modelo_inativo:
+    status: "INACTIVE"  # Valor do MODEL_USED que indica item inativo
+    meses_sem_uso_para_inativo: 24  # Exemplo de parâmetro adicional (se necessário futuramente), PADRÃO = 24
+
+precos:  # Configurações de cálculo de preços e projeções
+  aplicar_ipca: true  # Define se o IPCA será utilizado na atualização de preços
+  ano_base_preco: 2025  # Ano alvo para o ajuste de preços históricos
+  fonte_ipca: "TAB_AUX.xlsx"  # Planilha que contém a série de IPCA
+  ajuste_projecao_padrao_pct: 0.035  # Percentual adicional aplicado à projeção (ex.: 3,5%)
+
+integracao:  # Parâmetros relacionados às planilhas integradas
+  gerar_alias_abas_compat: true  # Se deve criar abas com nomes alternativos para compatibilidade
+  planilha_alias:  # Mapeamento de nomes de abas para alias
+    PREVISOES: "PREDICOES_ML"  # Alias usado para a aba de previsões ML
+    CLASSIFICACAO: "INDICADORES"  # Alias para a aba de indicadores/classificações
+
+exportacao:  # Ajustes de exportação de dados
+  limitar_consolidado_original_linhas: 500000  # Número máximo de linhas exportadas do consolidado histórico
+  gerar_json_resumo: true  # Se deve gerar um arquivo JSON com estatísticas resumidas
+  formatar_moeda_br: true  # Indica se valores monetários devem ser formatados no padrão brasileiro
+  raiz: "exportacoes"  # Diretório raiz para todos os arquivos gerados pelo sistema
+  grupos:  # Mapeamento de opções para subpastas organizadas
+    Orcamento:
+      - ml_orcamento
+    Relatorios_MAN:
+      - man_liquidacao
+      - man_pedido
+      - man_oc
+      - man_002
+      - man_004
+      - man_005
+      - man_estoque
+      - man_followup
+      - man_consolidado
+    Analises:
+      - analise_estrategias
+      - piscofins
+
+piscofins:  # Defaults específicos para o módulo de Créditos PIS/COFINS
+  aliquota: 0.0925  # Alíquota combinada PIS/COFINS (9,25%)
+  anos_default: [2020, 2021, 2022, 2023]
+  cod_tipo_despesa_default: [801, 802, 803, 804, 807, 809, 810, 814, 817, 818, 901, 902, 903, 904, 905, 906, 907, 908, 914, 1708, 4508]
+  cst_pis_default: 70
+  skiprows_default: 10
+  date_columns: ["entrada", "emissao", "data_emissao", "data_emissao_nf_saida", "data"]
+  man_subdir: "DÉBITO_DIRETO"
+  man_filename: "MAN001 - Pedidos de Compras - Data da Liquidacao - Fabricas.xlsm"
+  tab_aux_filename: "TAB_AUX.xlsx"
+
+documentacao:  # Opções relativas à documentação gerada
+  modo_nome_inteligente: "inteligente"  # Nome amigável usado para referenciar o modo inteligente
+  alias_modo:  # Mapeamento de aliases para modos
+    proposto: "inteligente"  # Faz o modo "proposto" apontar para a lógica "inteligente"

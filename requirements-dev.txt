@@ -1,0 +1,36 @@
+# ====================================
+# FinScope - Dependências de Desenvolvimento
+# ====================================
+# Instale com: pip install -r requirements-dev.txt
+
+# --- Testes ---
+pytest>=7.0.0
+pytest-cov>=4.0.0
+pytest-asyncio>=0.21.0
+pytest-mock>=3.10.0
+
+# --- Linting e Formatação ---
+black>=23.0.0
+flake8>=6.0.0
+isort>=5.12.0
+mypy>=1.0.0
+
+# --- Type Stubs ---
+types-PyYAML>=6.0.0
+pandas-stubs>=2.0.0
+
+# --- Documentação ---
+mkdocs>=1.4.0
+mkdocs-material>=9.0.0
+mkdocs-include-markdown-plugin>=4.0.0
+
+# --- Pre-commit ---
+pre-commit>=3.0.0
+
+# --- Debugging ---
+ipython>=8.0.0
+ipdb>=0.13.0
+
+# --- Profiling ---
+memory-profiler>=0.60.0
+line-profiler>=4.0.0

@@ -1,0 +1,18 @@
+{
+  "exclude": [
+    "**/site-packages/**",
+    "**/node_modules/**",
+    "**/__pycache__/**",
+    "**/.*"
+  ],
+  "reportMissingImports": "warning",
+  "reportAttributeAccessIssue": "none",
+  "reportUndefinedVariable": "warning",
+  "reportMissingTypeStubs": "none",
+  "reportUnusedExpression": "none",
+  "reportUnsupportedDunderAll": "none",
+  "reportIncompatibleMethodOverride": "none",
+  "reportOverlappingOverload": "none",
+  "reportPossiblyUnboundVariable": "none",
+  "pythonVersion": "3.13"
+}
